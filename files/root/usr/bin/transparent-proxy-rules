@@ -72,8 +72,8 @@ EOF
 ipt_nat() {
 	include_ac_rules nat
 	ipt="iptables -t nat"
-	$ipt -A TP_SPEC_WAN_FW -p tcp \
-		-j REDIRECT --to-ports $local_port || return 1
+	$ipt -A TP_SPEC_WAN_FW -p tcp -j RETURN -m mark --mark 0xff
+	$ipt -A TP_SPEC_WAN_FW -p tcp -j REDIRECT --to-ports $local_port || return 1
 	if [ -n "$OUTPUT" ]; then
 		$ipt -N TP_SPEC_WAN_DG
 		$ipt -A TP_SPEC_WAN_DG -m set --match-set tp_spec_dst_sp dst -j RETURN
@@ -92,8 +92,7 @@ ipt_mangle() {
 	ip rule add fwmark 1 lookup 100
 	ip route add local default dev lo table 100
 	include_ac_rules mangle
-	iptables -t mangle -A TP_SPEC_WAN_FW -p udp \
-		-j TPROXY --on-port $LOCAL_PORT --tproxy-mark 0x01/0x01
+	iptables -t mangle -A TP_SPEC_WAN_FW -p udp -j TPROXY --on-port $LOCAL_PORT --tproxy-mark 0x01/0x01
 	return $?
 }
 
