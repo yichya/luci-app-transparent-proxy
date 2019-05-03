@@ -25,7 +25,7 @@ define Package/luci-app-transparent-proxy
 	SUBMENU:=3. Applications
 	TITLE:=LuCI helper for iptables transparent proxy.
 	PKGARCH:=all
-	DEPENDS:=+iptables +ipset
+	DEPENDS:=+iptables +ipset +iptables-mod-tproxy
 endef
 
 define Package/luci-app-transparent-proxy/description

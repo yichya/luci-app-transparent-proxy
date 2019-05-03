@@ -29,17 +29,9 @@ local function is_ipset_exist(name)
 	return luci.sys.call("ipset list %s >/dev/null" %{name}) == 0
 end
 
-local function is_running(name)
-	return luci.sys.call("pidof %s >/dev/null" %{name}) == 0
-end
-
 function action_status()
 	luci.http.prepare_content("application/json")
 	luci.http.write_json({
 		rules = is_ipset_exist("tp_spec_dst_fw"),
-		ss_redir = is_running("ss-redir"),
-		ssr_redir = is_running("ssr-redir"),
-		v2ray = is_running("v2ray"),
-		redsocks = is_running("redsocks")
 	})
 end
