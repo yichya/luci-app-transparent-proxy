@@ -30,12 +30,6 @@ o = s:option(Flag, "enable", translate("Enable"))
 o.default = "0"
 o.rmempty = false
 
-if has_tproxy then
-	o = s:option(Flag, "udp", translate("UDP Relay"))
-	o.default = "0"
-	o.rmempty = false
-end
-
 o = s:option(Value, "startup_delay", translate("Startup Delay"))
 o:value(0, translate("Not enabled"))
 for _, v in ipairs({5, 10, 15, 25, 40}) do

@@ -20,12 +20,7 @@ usage() {
 		    -w <wan_ips>            wan ip of will be forwarded
 		    -I <interface>          proxy only for the given interface
 		    -d <target>             the default target of lan access control
-		    -a <lan_hosts>          mac addr of access control, need a prefix to
-		                            define proxy type
-		    -e <extra_args>         extra arguments for iptables
-		    -o                      apply the rules to the OUTPUT chain
-		    -O                      apply the global rules to the OUTPUT chain
-		    -u                      enable udprelay mode, TPROXY is required
+		    -a <lan_hosts>          mac addr of access control, need a prefix to define proxy type
 		    -f                      flush the rules
 		    -h                      show this help message and exit
 EOF
@@ -69,30 +64,32 @@ EOF
 	return 0
 }
 
-ipt_nat() {
-	include_ac_rules nat
-	ipt="iptables -t nat"
-	$ipt -A TP_SPEC_WAN_FW -p tcp -j RETURN -m mark --mark 0xff
-	$ipt -A TP_SPEC_WAN_FW -p tcp -j REDIRECT --to-ports $local_port || return 1
-	if [ -n "$OUTPUT" ]; then
-		$ipt -N TP_SPEC_WAN_DG
-		$ipt -A TP_SPEC_WAN_DG -m set --match-set tp_spec_dst_sp dst -j RETURN
-		$ipt -A TP_SPEC_WAN_DG -p tcp $EXT_ARGS -j $OUTPUT
-		$ipt -I OUTPUT 1 -p tcp -j TP_SPEC_WAN_DG
-	fi
-	return $?
-}
-
 ipt_mangle() {
-	[ -n "$TPROXY" ] || return 0
 	if !(lsmod | grep -q TPROXY && command -v ip >/dev/null); then
 		loger 4 "TPROXY or ip not found."
 		return 0
 	fi
 	ip rule add fwmark 1 lookup 100
 	ip route add local default dev lo table 100
-	include_ac_rules mangle
-	iptables -t mangle -A TP_SPEC_WAN_FW -p udp -j TPROXY --on-port $LOCAL_PORT --tproxy-mark 0x01/0x01
+	include_ac_rules
+	iptables -t mangle -A TP_SPEC_WAN_FW -p tcp -j TPROXY --on-port $local_port --tproxy-mark 1
+	iptables -t mangle -A TP_SPEC_WAN_FW -p udp -j TPROXY --on-port $local_port --tproxy-mark 1
+	return $?
+}
+
+ipt_mangle_output() {
+	if !(lsmod | grep -q TPROXY && command -v ip >/dev/null); then
+		loger 4 "TPROXY or ip not found."
+		return 0
+	fi
+
+	iptables -t mangle -N TP_SPEC_WAN_DG
+	iptables -t mangle -A TP_SPEC_WAN_DG -m set --match-set tp_spec_dst_sp dst -j RETURN
+	iptables -t mangle -A TP_SPEC_WAN_DG -m set --match-set tp_spec_dst_bp dst -j RETURN
+	iptables -t mangle -A TP_SPEC_WAN_DG -j RETURN -m mark --mark 0xff 
+	iptables -t mangle -A TP_SPEC_WAN_DG -p tcp -j MARK --set-mark 1
+	iptables -t mangle -A TP_SPEC_WAN_DG -p udp -j MARK --set-mark 1
+	iptables -t mangle -I OUTPUT 1 -j TP_SPEC_WAN_DG
 	return $?
 }
 
@@ -101,8 +98,7 @@ export_ipt_rules() {
 	cat <<-CAT >>$FWI
 	iptables-save -c | grep -v "TP_SPEC" | iptables-restore -c
 	iptables-restore -n <<-EOF
-	$(iptables-save | grep -E "TP_SPEC|^\*|^COMMIT" |\
-			sed -e "s/^-A \(OUTPUT\|PREROUTING\)/-I \1 1/")
+	$(iptables-save | grep -E "TP_SPEC|^\*|^COMMIT" | sed -e "s/^-A \(OUTPUT\|PREROUTING\)/-I \1 1/")
 	EOF
 CAT
 	return $?
@@ -149,15 +145,15 @@ EOF
 }
 
 include_ac_rules() {
-	local protocol=$([ "$1" = "mangle" ] && echo udp || echo tcp)
 	iptables-restore -n <<-EOF
-	*$1
+	*mangle
 	:TP_SPEC_LAN_DG - [0:0]
 	:TP_SPEC_LAN_AC - [0:0]
 	:TP_SPEC_WAN_AC - [0:0]
 	:TP_SPEC_WAN_FW - [0:0]
 	-A TP_SPEC_LAN_DG -m set --match-set tp_spec_dst_sp dst -j RETURN
-	-A TP_SPEC_LAN_DG -p $protocol $EXT_ARGS -j TP_SPEC_LAN_AC
+	-A TP_SPEC_LAN_DG -p tcp -j TP_SPEC_LAN_AC
+	-A TP_SPEC_LAN_DG -p udp -j TP_SPEC_LAN_AC
 	-A TP_SPEC_LAN_AC -m set --match-set tp_spec_src_bp src -j RETURN
 	-A TP_SPEC_LAN_AC -m set --match-set tp_spec_src_fw src -j TP_SPEC_WAN_FW
 	-A TP_SPEC_LAN_AC -m set --match-set tp_spec_src_ac src -j TP_SPEC_WAN_AC
@@ -165,15 +161,15 @@ include_ac_rules() {
 	-A TP_SPEC_WAN_AC -m set --match-set tp_spec_dst_fw dst -j TP_SPEC_WAN_FW
 	-A TP_SPEC_WAN_AC -m set --match-set tp_spec_dst_bp dst -j RETURN
 	-A TP_SPEC_WAN_AC -j TP_SPEC_WAN_FW
-	$(gen_prerouting_rules $protocol)
+	$(gen_prerouting_rules)
 	COMMIT
 EOF
 }
 
 gen_prerouting_rules() {
-	[ -z "$IFNAMES" ] && echo -I PREROUTING 1 -p $1 -j TP_SPEC_LAN_DG
+	[ -z "$IFNAMES" ] && echo -I PREROUTING 1 -j TP_SPEC_LAN_DG
 	for ifname in $IFNAMES; do
-		echo -I PREROUTING 1 -i $ifname -p $1 -j TP_SPEC_LAN_DG
+		echo -I PREROUTING 1 -i $ifname -j TP_SPEC_LAN_DG
 	done
 }
 
@@ -203,18 +199,6 @@ while getopts ":s:l:S:L:B:b:W:w:I:d:a:e:oOuUfh" arg; do
 		a)
 			LAN_HOSTS=$OPTARG
 			;;
-		e)
-			EXT_ARGS=$OPTARG
-			;;
-		o)
-			OUTPUT=TP_SPEC_WAN_AC
-			;;
-		O)
-			OUTPUT=TP_SPEC_WAN_FW
-			;;
-		u)
-			TPROXY=1
-			;;
 		f)
 			flush_rules
 			exit 0
@@ -227,11 +211,7 @@ done
 
 [ -z "$local_port" ] && usage 2
 
-if [ "$TPROXY" = 1 ]; then
-	LOCAL_PORT=$local_port
-fi
-
-flush_rules && ipset_init && ipt_nat && ipt_mangle && export_ipt_rules
+flush_rules && ipset_init && ipt_mangle && ipt_mangle_output && export_ipt_rules
 RET=$?
 [ "$RET" = 0 ] || loger 3 "Start failed!"
 exit $RET

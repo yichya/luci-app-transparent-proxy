@@ -69,18 +69,6 @@ o:value("RETURN", translate("Direct"))
 o:value("TP_SPEC_WAN_FW", translate("Global"))
 o.rmempty = false
 
-o = s:option(ListValue, "self_proxy", translate("Self Proxy"))
-o:value("1", translatef("Normal"))
-o:value("0", translatef("Direct"))
-o:value("2", translatef("Global"))
-o.rmempty = false
-
-o = s:option(Value, "ipt_ext", translate("Extra arguments"),
-	translate("Passes additional arguments to iptables. Use with care!"))
-o:value("", translate("None"))
-o:value("--dport 22:1023", translate("Proxy port numbers %s only") %{"22~1023"})
-o:value("-m multiport --dports 53,80,443", translate("Proxy port numbers %s only") %{"53,80,443"})
-
 -- [[ LAN Hosts ]]--
 s = m:section(TypedSection, "lan_hosts", translate("LAN Hosts"))
 s.template = "cbi/tblsection"
