@@ -72,6 +72,8 @@ define Package/luci-app-transparent-proxy/install
 	$(INSTALL_DATA) ./files/root/etc/config/transparent-proxy $(1)/etc/config/transparent-proxy
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/root/etc/init.d/transparent-proxy $(1)/etc/init.d/transparent-proxy
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
+	$(INSTALL_BIN) ./files/root/etc/hotplug.d/iface/01-transparent-proxy $(1)/etc/hotplug.d/iface/01-transparent-proxy
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/root/etc/uci-defaults/luci-transparent-proxy $(1)/etc/uci-defaults/luci-transparent-proxy
 	$(INSTALL_DIR) $(1)/usr/bin
