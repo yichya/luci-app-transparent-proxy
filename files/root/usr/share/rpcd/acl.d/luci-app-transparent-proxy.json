@@ -1,0 +1,11 @@
+{
+        "luci-app-transparent-proxy": {
+                "description": "Grant access to Transparent Proxy configuration",
+                "read": {
+                        "uci": [ "transparent-proxy" ]
+                },
+                "write": {
+                        "uci": [ "transparent-proxy" ]
+                }
+        }
+}

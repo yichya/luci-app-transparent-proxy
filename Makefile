@@ -25,7 +25,7 @@ define Package/luci-app-transparent-proxy
 	SUBMENU:=3. Applications
 	TITLE:=LuCI helper for iptables transparent proxy.
 	PKGARCH:=all
-	DEPENDS:=+iptables +ipset +iptables-mod-tproxy
+	DEPENDS:=+iptables +ipset +iptables-mod-tproxy +luci-compat
 endef
 
 define Package/luci-app-transparent-proxy/description
@@ -78,6 +78,8 @@ define Package/luci-app-transparent-proxy/install
 	$(INSTALL_BIN) ./files/root/etc/uci-defaults/luci-transparent-proxy $(1)/etc/uci-defaults/luci-transparent-proxy
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) ./files/root/usr/bin/transparent-proxy-rules$(2) $(1)/usr/bin/transparent-proxy-rules
+	$(INSTALL_DIR) $(1)/usr/share/rpcd/acl.d
+	$(INSTALL_DATA) ./files/root/usr/share/rpcd/acl.d/luci-app-transparent-proxy.json $(1)/usr/share/rpcd/acl.d/luci-app-transparent-proxy.json
 endef
 
 $(eval $(call BuildPackage,luci-app-transparent-proxy))
