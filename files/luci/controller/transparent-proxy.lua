@@ -9,18 +9,18 @@ function index()
 		return
 	end
 
-	entry({"admin", "services", "transparent-proxy"},
-		alias("admin", "services", "transparent-proxy", "general"),
+	entry({"admin", "vpn", "transparent-proxy"},
+		alias("admin", "vpn", "transparent-proxy", "general"),
 		_("Transparent Proxy"), 10).dependent = true
 
-	entry({"admin", "services", "transparent-proxy", "general"},
+	entry({"admin", "vpn", "transparent-proxy", "general"},
 		cbi("transparent-proxy/general"),
 		_("General Settings"), 10).leaf = true
 
-	entry({"admin", "services", "transparent-proxy", "status"},
+	entry({"admin", "vpn", "transparent-proxy", "status"},
 		call("action_status")).leaf = true
 
-	entry({"admin", "services", "transparent-proxy", "access-control"},
+	entry({"admin", "vpn", "transparent-proxy", "access-control"},
 		cbi("transparent-proxy/access-control"),
 		_("Access Control"), 30).leaf = true
 end

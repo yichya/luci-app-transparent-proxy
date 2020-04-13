@@ -10,7 +10,7 @@
 	(function() {
 		var _status_rules = document.getElementById("_status_rules");
 
-		XHR.poll(5, "<%=luci.dispatcher.build_url("admin", "services", "transparent-proxy", "status")%>", null, function(x, status) {
+		XHR.poll(5, "<%=luci.dispatcher.build_url("admin", "vpn", "transparent-proxy", "status")%>", null, function(x, status) {
 			if (_status_rules) {
 				_status_rules.textContent = status.rules ? "<%:EXIST%>" : "<%:NOT EXIST%>";
 				_status_rules.style = status.rules ? "color:green; font-weight: bold;" : "color:red; font-weight: normal;";
